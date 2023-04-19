@@ -5,111 +5,145 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+    return const MaterialApp(
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(40.0),
+            child: CustomWidget(
+              text: 'Flutter is an open source framework by Google',
+              isSelected: true,
+            ),
+          ),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class CustomWidget extends StatelessWidget {
+  /* Custom adaptive widget consisting of three elements
+    Logic:
+      - The first element with text. If the text is overflowing it acquires the `ellipsis` property
+      - The second element contains a dotted line. If the screen shrinks or the length of the text
+     in the first element increases. The second element shrinks and gives way to the first element.
+     The minimum size is 10 pixels, when you reach 10 pixels, the dashed line is not visible.
+      - The third element is unchanged.
+   */
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  static const double _minPixelMiddleElement = 10;
+  static const double _elementHeight = 100;
+  static const int _maxLines = 1;
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+  final String text;
+  final bool isSelected;
 
-  final String title;
+  const CustomWidget({super.key, required this.text, required this.isSelected});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+      bool showDashed = true;
+      double elementWidth = constraints.maxWidth / 3;
+      double middleElementWidth = elementWidth;
+      // Value 10 is added for the widget and method `TextOverflow.ellipsis` to work correctly
+      double textWidth = _getTextWidth(context: context, text: text) + 10;
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+      // Reduce size the middle element
+      if (elementWidth < textWidth) {
+        middleElementWidth = elementWidth - (textWidth - elementWidth);
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+        if (middleElementWidth <= _minPixelMiddleElement) {
+          // Set min size
+          middleElementWidth = _minPixelMiddleElement;
+          showDashed = false;
+        }
+      }
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(
+              child: _getBorderContainer(
+            width: elementWidth,
+            height: _elementHeight,
+            child: Center(
+                child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: _maxLines,
+            )),
+          )),
+          _getBorderContainer(
+            width: middleElementWidth,
+            height: _elementHeight,
+            child: showDashed
+                ? CustomPaint(
+                    painter: DashedLinePainter(),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          _getBorderContainer(
+              width: elementWidth,
+              height: _elementHeight,
+              child: Checkbox(value: isSelected, onChanged: null))
+        ],
+      );
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+  Container _getBorderContainer(
+      {required double width, required double height, required Widget child}) {
+    // The method returns the base border container
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(border: Border.all(color: Colors.black12)),
+      child: child,
     );
+  }
+
+  double _getTextWidth({required BuildContext context, required String text}) {
+    // The method returns text width
+
+    return (TextPainter(
+            text: TextSpan(text: text),
+            maxLines: _maxLines,
+            textScaleFactor: MediaQuery.of(context).textScaleFactor,
+            textDirection: TextDirection.ltr)
+          ..layout())
+        .width;
+  }
+}
+
+class DashedLinePainter extends CustomPainter {
+  // Custom painter with a dashed line
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 1.0;
+
+    double dashWidth = 5, dashSpace = 5, startX = 0;
+    double posY = size.height / 2;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+          Offset(startX, posY), Offset(startX + dashWidth, posY), paint);
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false;
   }
 }
