@@ -92,7 +92,7 @@ class CustomWidget extends StatelessWidget {
           _getBorderContainer(
               width: elementWidth,
               height: _elementHeight,
-              child: Checkbox(value: isSelected, onChanged: null))
+              child: CheckBoxWidget(isSelected))
         ],
       );
     });
@@ -120,6 +120,30 @@ class CustomWidget extends StatelessWidget {
             textDirection: TextDirection.ltr)
           ..layout())
         .width;
+  }
+}
+
+class CheckBoxWidget extends StatefulWidget {
+  bool isSelected;
+
+  CheckBoxWidget(this.isSelected, {Key? key}) : super(key: key);
+
+  @override
+  State<CheckBoxWidget> createState() => _CheckBoxWidgetState();
+}
+
+class _CheckBoxWidgetState extends State<CheckBoxWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return Checkbox(
+        value: widget.isSelected,
+        onChanged: (bool? value) {
+          setState(() {
+            if (value != null) {
+              widget.isSelected = value;
+            }
+          });
+        });
   }
 }
 
